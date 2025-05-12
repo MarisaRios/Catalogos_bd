@@ -2,6 +2,68 @@
 #MARISA RIOS DE PAZ S4A
 
 import wx
+from datetime import datetime
+from db import conexion, cursor  
+
+def crear_inventario(event):
+    codigo = codigo_barras_entry.GetValue()
+    cantidad = cantidad_entry.GetValue()
+    fecha = fecha_actualizacion_entry.GetValue()
+
+    if fecha.strip() == "":
+        fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    try:
+        sql = "INSERT INTO inventario (codigo_barras, cantidad, fecha_actualizacion) VALUES (%s, %s, %s)"
+        valores = (codigo, cantidad, fecha)
+        cursor.execute(sql, valores)
+        conexion.commit()
+        wx.MessageBox("Inventario creado exitosamente", "Éxito", wx.OK | wx.ICON_INFORMATION)
+    except Exception as e:
+        wx.MessageBox(f"Error al crear inventario:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
+
+def buscar_inventario(event):
+    codigo = codigo_barras_entry.GetValue()
+
+    try:
+        sql = "SELECT cantidad, fecha_actualizacion FROM inventario WHERE codigo_barras = %s"
+        cursor.execute(sql, (codigo,))
+        resultado = cursor.fetchone()
+        if resultado:
+            cantidad_entry.SetValue(str(resultado[0]))
+            fecha_actualizacion_entry.SetValue(str(resultado[1]))
+        else:
+            wx.MessageBox("Inventario no encontrado", "Aviso", wx.OK | wx.ICON_WARNING)
+    except Exception as e:
+        wx.MessageBox(f"Error al buscar:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
+
+def actualizar_inventario(event):
+    codigo = codigo_barras_entry.GetValue()
+    cantidad = cantidad_entry.GetValue()
+    fecha = fecha_actualizacion_entry.GetValue()
+
+    if fecha.strip() == "":
+        fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    try:
+        sql = "UPDATE inventario SET cantidad = %s, fecha_actualizacion = %s WHERE codigo_barras = %s"
+        valores = (cantidad, fecha, codigo)
+        cursor.execute(sql, valores)
+        conexion.commit()
+        wx.MessageBox("Inventario actualizado", "Éxito", wx.OK | wx.ICON_INFORMATION)
+    except Exception as e:
+        wx.MessageBox(f"Error al actualizar:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
+
+def eliminar_inventario(event):
+    codigo = codigo_barras_entry.GetValue()
+
+    try:
+        sql = "DELETE FROM inventario WHERE codigo_barras = %s"
+        cursor.execute(sql, (codigo,))
+        conexion.commit()
+        wx.MessageBox("Inventario eliminado", "Éxito", wx.OK | wx.ICON_INFORMATION)
+    except Exception as e:
+        wx.MessageBox(f"Error al eliminar:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
 
 app = wx.App() #crear la app
 
@@ -37,6 +99,11 @@ boton_crear = wx.Button(panel, label="Crear", pos=(inicio_x, y_botones), size=(b
 boton_buscar = wx.Button(panel, label="Buscar", pos=(inicio_x + (boton_ancho + espaciado), y_botones), size=(boton_ancho, 30))
 boton_actualizar = wx.Button(panel, label="Actualizar", pos=(inicio_x + 2 * (boton_ancho + espaciado), y_botones), size=(boton_ancho, 30))
 boton_eliminar = wx.Button(panel, label="Eliminar", pos=(inicio_x + 3 * (boton_ancho + espaciado), y_botones), size=(boton_ancho, 30))
+
+boton_crear.Bind(wx.EVT_BUTTON, crear_inventario)
+boton_buscar.Bind(wx.EVT_BUTTON, buscar_inventario)
+boton_actualizar.Bind(wx.EVT_BUTTON, actualizar_inventario)
+boton_eliminar.Bind(wx.EVT_BUTTON, eliminar_inventario)
 
 ventana4.Show()
 

@@ -1,6 +1,69 @@
 #Tienda Pitico 
 #MARISA RIOS DE PAZ S4A
 import wx
+from db import conexion, cursor
+
+def crear_proveedor(event):
+    id_proveedor = id_proveedor_entry.GetValue()
+    nombre = nombre_entry.GetValue()
+    contacto = contacto_entry.GetValue()
+    telefono = telefono_entry.GetValue()
+    email = email_entry.GetValue()
+    direccion = direccion_entry.GetValue()
+
+    try:
+        sql = "INSERT INTO proveedor (id_proveedor, nombre, contacto, telefono, email, direccion) VALUES (%s, %s, %s, %s, %s, %s)"
+        valores = (id_proveedor, nombre, contacto, telefono, email, direccion)
+        cursor.execute(sql, valores)
+        conexion.commit()
+        wx.MessageBox("Proveedor creado exitosamente", "Éxito", wx.OK | wx.ICON_INFORMATION)
+    except Exception as e:
+        wx.MessageBox(f"Error al crear proveedor:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
+
+def buscar_proveedor(event):
+    id_proveedor = id_proveedor_entry.GetValue()
+    try:
+        sql = "SELECT nombre, contacto, telefono, email, direccion FROM proveedor WHERE id_proveedor = %s"
+        cursor.execute(sql, (id_proveedor,))
+        resultado = cursor.fetchone()
+        if resultado:
+            nombre_entry.SetValue(resultado[0])
+            contacto_entry.SetValue(resultado[1])
+            telefono_entry.SetValue(resultado[2])
+            email_entry.SetValue(resultado[3])
+            direccion_entry.SetValue(resultado[4])
+        else:
+            wx.MessageBox("Proveedor no encontrado", "Aviso", wx.OK | wx.ICON_WARNING)
+    except Exception as e:
+        wx.MessageBox(f"Error al buscar proveedor:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
+
+def actualizar_proveedor(event):
+    id_proveedor = id_proveedor_entry.GetValue()
+    nombre = nombre_entry.GetValue()
+    contacto = contacto_entry.GetValue()
+    telefono = telefono_entry.GetValue()
+    email = email_entry.GetValue()
+    direccion = direccion_entry.GetValue()
+
+    try:
+        sql = "UPDATE proveedor SET nombre=%s, contacto=%s, telefono=%s, email=%s, direccion=%s WHERE id_proveedor=%s"
+        valores = (nombre, contacto, telefono, email, direccion, id_proveedor)
+        cursor.execute(sql, valores)
+        conexion.commit()
+        wx.MessageBox("Proveedor actualizado correctamente", "Éxito", wx.OK | wx.ICON_INFORMATION)
+    except Exception as e:
+        wx.MessageBox(f"Error al actualizar proveedor:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
+
+def eliminar_proveedor(event):
+    id_proveedor = id_proveedor_entry.GetValue()
+    try:
+        sql = "DELETE FROM proveedor WHERE id_proveedor = %s"
+        cursor.execute(sql, (id_proveedor,))
+        conexion.commit()
+        wx.MessageBox("Proveedor eliminado", "Éxito", wx.OK | wx.ICON_INFORMATION)
+    except Exception as e:
+        wx.MessageBox(f"Error al eliminar proveedor:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
+
 
 app = wx.App() #crear la app
 
@@ -48,6 +111,11 @@ boton_crear = wx.Button(panel, label="Crear", pos=(inicio_x, y_botones), size=(b
 boton_buscar = wx.Button(panel, label="Buscar", pos=(inicio_x + (boton_ancho + espaciado), y_botones), size=(boton_ancho, 30))
 boton_actualizar = wx.Button(panel, label="Actualizar", pos=(inicio_x + 2 * (boton_ancho + espaciado), y_botones), size=(boton_ancho, 30))
 boton_eliminar = wx.Button(panel, label="Eliminar", pos=(inicio_x + 3 * (boton_ancho + espaciado), y_botones), size=(boton_ancho, 30))
+
+boton_crear.Bind(wx.EVT_BUTTON, crear_proveedor)
+boton_buscar.Bind(wx.EVT_BUTTON, buscar_proveedor)
+boton_actualizar.Bind(wx.EVT_BUTTON, actualizar_proveedor)
+boton_eliminar.Bind(wx.EVT_BUTTON, eliminar_proveedor)
 
 ventana5.Show()
 
