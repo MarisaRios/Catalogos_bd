@@ -7,3 +7,5 @@ Paso 2. Abrir el proyecto en visual studio code
 Paso 3. Generar el entorno virtual (si ya existe saltar al siguiente)
 
 Paso 4. Habilitar el entorno virtual
+
+Paso 5. pip install mysql-connector-python

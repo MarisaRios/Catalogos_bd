@@ -54,6 +54,12 @@ def actualizar_inventario(event):
     except Exception as e:
         wx.MessageBox(f"Error al actualizar:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
 
+def insertar_fecha_actual(event):
+    ahora = datetime.now()
+    fecha_formateada = ahora.strftime("%Y-%m-%d %H:%M:%S")
+    fecha_actualizacion_entry.SetValue(fecha_formateada)
+
+
 def eliminar_inventario(event):
     codigo = codigo_barras_entry.GetValue()
 
@@ -86,6 +92,8 @@ cantidad_entry.SetBackgroundColour("light gray")
 
 wx.StaticText(panel, label="Fecha de actualización:", pos=(50, 180))
 fecha_actualizacion_entry = wx.TextCtrl(panel, pos=(180, 180), size=(200, -1))
+fecha_actualizacion_entry.SetHint("yyyy/mm/dd hh:mm:ss")
+boton_fecha_actual = wx.Button(panel, label="Fecha actual", pos=(390, 180), size=(100, 25))
 fecha_actualizacion_entry.SetBackgroundColour("light gray")
 
 #Botones
@@ -104,6 +112,7 @@ boton_crear.Bind(wx.EVT_BUTTON, crear_inventario)
 boton_buscar.Bind(wx.EVT_BUTTON, buscar_inventario)
 boton_actualizar.Bind(wx.EVT_BUTTON, actualizar_inventario)
 boton_eliminar.Bind(wx.EVT_BUTTON, eliminar_inventario)
+boton_fecha_actual.Bind(wx.EVT_BUTTON, insertar_fecha_actual)
 
 ventana4.Show()
 
