@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS empleados (
   puesto VARCHAR(50) NOT NULL,
   sueldo FLOAT NOT NULL,
   estatus VARCHAR(45) NOT NULL,
+  contraseña VARCHAR(80) NOT NULL,
   PRIMARY KEY (id_empleado)
 ) ENGINE = InnoDB;
 
@@ -166,27 +167,30 @@ INSERT INTO categoria (nombre) VALUES
 INSERT INTO articulos (codigo_barras, nombre, precio, existencia, unidad, descripcion, id_categoria) VALUES
 ('7501055307906', 'Agua Natural Ciel 600ml', 14.00, 80, 'ml', 'Agua purificada embotellada',  1),
 ('7501055333868', 'Jugo del valle Manzana 1ltr', 17.50, 60, 'ltr', 'Jugo natural con azúcar',  1),
-('7501055304745', 'Coca-Cola 3ltr', 53.00, 40, 'ltr', 'Refresco de cola',  1);
+('7501055304745', 'Coca-Cola 3ltr', 53.00, 40, 'ltr', 'Refresco de cola',  1),
+('7894900053630', 'Refresco fanta sabor uva 600 ml', 18.00, 40, 'ml', 'Refresco sabor uva',  1);
 
 INSERT INTO articulos (codigo_barras, nombre, precio, existencia, unidad, descripcion, id_categoria) VALUES
 ('7501040000218', 'Salchicha Pavo FUD 266g', 18.90, 50, 'Paquete', 'Salchicha cocida tipo FUD', 2),
 ('7501040027307', 'Chorizo vegetariano San Rafael 200g', 38.00, 40, 'Paquete', 'Chorizo vegetariano elaborado con alubias y proteína de chícharo', 2),
-('7501325703599', 'Jamón lunch de pavo KIR 220g', 23.80, 30, 'Paquete', 'Elaborado con carne de pavo de alta calidad,', 2);
+('7501325703599', 'Jamón lunch de pavo KIR 220g', 23.80, 30, 'Paquete', 'Elaborado con carne de pavo de alta calidad,', 2),
+('7501040005428', 'Tocino ahumado rebanado fud 250g', 80.80, 30, 'Paquete', 'Tocino con un delicioso sabor ahumado', 2);
 
 INSERT INTO articulos (codigo_barras, nombre, precio, existencia, unidad, descripcion, id_categoria) VALUES
 ('7501071301049', 'Frijol Negro 900g', 64.90, 70, 'Bolsa', 'Frijol seco negro', 3),
 ('7501018310295', 'Lenteja la Moderna 200g', 27.00, 65, 'Bolsa', 'Lenteja granel', 3),
-('7501003100450', 'Garbanzo Herdez 400g', 25.00, 60, 'Bolsa', 'Grano seco de garbanzo', 3);
+('7501003100450', 'Garbanzo Herdez 400g', 25.00, 60, 'Bolsa', 'Grano seco de garbanzo', 3),
+('7501037310056', 'Ensalada de legumbres Herdez 215 g', 15.00, 30, 'lata', 'Mezcla enlatada de legumbres cocidas', 3);
 
 INSERT INTO clientes (telefono, nombre, apellido, email, direccion) VALUES
 ('9611234567', 'Carlos', 'Ramírez', 'carlos.ramirez@gmail.com', 'Calle 5 #123, Centro'),
 ('9617654321', 'María', 'González', 'maria.gonzalez@gmail.com', 'Av. Insurgentes Sur 456'),
 ('9616789123', 'Luis', 'Hernández', 'luis.hernandez@gmail.com', 'Col. Roma Norte #78');
 
-INSERT INTO empleados (nombre, apellido, telefono, email, direccion, puesto, sueldo, estatus) VALUES
-('Ana', 'Lopez', '9611122334', 'ana.lopez@gmail.com', 'Calle Reforma 100', 'Cajera', 3200.00, 'Activo'),
-('Jorge', 'Martínez', '9612233445', 'jorge.martinez@gmail.com', 'Col. Del Valle #200', 'Limpieza', 1500.00, 'Activo'),
-('Elena', 'Sánchez', '9613344556', 'elena.sanchez@gmail.com', 'Zona Centro #321', 'Supervisor', 3600.00, 'Activo');
+INSERT INTO empleados (nombre, apellido, telefono, email, direccion, puesto, sueldo, estatus, contraseña) VALUES
+('Ana', 'Lopez', '9611122334', 'ana.lopez@gmail.com', 'Calle Reforma 100', 'Cajera', 3200.00, 'Activo', '18765'),
+('Jorge', 'Martínez', '9612233445', 'jorge.martinez@gmail.com', 'Col. Del Valle #200', 'Limpieza', 1500.00, 'Activo', '24516'),
+('Elena', 'Sánchez', '9613344556', 'elena.sanchez@gmail.com', 'Zona Centro #321', 'Supervisor', 3600.00, 'Activo', '98612');
 
 INSERT INTO proveedor (nombre, contacto, telefono, email, direccion) VALUES
 ('Distribuidora Coca-Cola FEMSA', 'Pedro Jiménez', '9617891234', 'cocaCola@bebidasmx.com', 'Bodega 12, Naucalpan'),
