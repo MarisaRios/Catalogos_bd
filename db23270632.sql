@@ -195,6 +195,8 @@ INSERT INTO clientes (telefono, nombre, apellido, email, direccion) VALUES
 ('9611234567', 'Carlos', 'Ramírez', 'carlos.ramirez@gmail.com', 'Calle 5 #123, Centro'),
 ('9617654321', 'María', 'González', 'maria.gonzalez@gmail.com', 'Av. Insurgentes Sur 456'),
 ('9616789123', 'Luis', 'Hernández', 'luis.hernandez@gmail.com', 'Col. Roma Norte #78'),
+('9612214833', 'Angel', 'Cruz', 'angelin@gmail.com', 'Av. Hidalgo #90'),
+('9613711416', 'Lucia', 'Palacios', 'palacios.luci@gmail.com', 'Col. Juan Crispin #31'),
 ('0000000000', 'Cliente General', '');
 
 INSERT INTO empleados (nombre, apellido, telefono, email, direccion, puesto, sueldo, estatus, contraseña) VALUES

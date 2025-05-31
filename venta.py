@@ -7,38 +7,47 @@ from db import conexion, cursor
 
 
 class TicketFrame(wx.Dialog):
-    """Ventana que muestra el ticket formateado como una ventana modal"""
+    """Ventana que muestra el ticket formateado como una ventana modal - Versión mejorada"""
     def __init__(self, parent, titulo, contenido):
-        super().__init__(parent, title=titulo, size=(400, 600))
+        super().__init__(parent, title=titulo, size=(450, 650))
         self.SetBackgroundColour(wx.Colour(255, 255, 255))  # Fondo blanco
 
         panel = wx.Panel(self)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         # Título del ticket
-        titulo_ticket = wx.StaticText(panel, label="TIENDA PITICO")
-        fuente_titulo = wx.Font(14, wx.DEFAULT, wx.NORMAL, wx.BOLD)
+        titulo_ticket = wx.StaticText(panel, label="🛒TIENDA PITICO")
+        fuente_titulo = wx.Font(16, wx.DEFAULT, wx.NORMAL, wx.BOLD)
         titulo_ticket.SetFont(fuente_titulo)
         titulo_ticket.SetForegroundColour(wx.BLACK)
 
-        # Contenido del ticket
+        # Contenido del ticket 
         texto_contenido = wx.TextCtrl(
             panel,
             value=contenido,
-            style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_CENTER,
-            size=(350, 500)
+            style=wx.TE_MULTILINE | wx.TE_READONLY,
+            size=(400, 520)
         )
+        
+        fuente_mono = wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.NORMAL)
+        texto_contenido.SetFont(fuente_mono)
         texto_contenido.SetBackgroundColour(wx.WHITE)
         texto_contenido.SetForegroundColour(wx.BLACK)
 
-        # Botón Cerrar
+        # Botones
+        sizer_botones = wx.BoxSizer(wx.HORIZONTAL)
+        
         boton_cerrar = wx.Button(panel, label="Cerrar", size=(80, 30))
+        boton_cerrar.SetBackgroundColour(wx.Colour(178, 34, 34))
+        boton_cerrar.SetForegroundColour(wx.WHITE)
         boton_cerrar.Bind(wx.EVT_BUTTON, self.on_cerrar)
 
+        sizer_botones.Add(boton_cerrar, 0)
+
         # Layout
-        sizer.Add(titulo_ticket, 0, wx.ALIGN_CENTER | wx.TOP, 20)
-        sizer.Add(texto_contenido, 1, wx.EXPAND | wx.ALL, 10)
-        sizer.Add(boton_cerrar, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
+        sizer.Add(titulo_ticket, 0, wx.ALIGN_CENTER | wx.TOP, 15)
+        sizer.Add(texto_contenido, 1, wx.EXPAND | wx.ALL, 15)
+        sizer.Add(sizer_botones, 0, wx.ALIGN_CENTER | wx.BOTTOM, 15)
         panel.SetSizer(sizer)
 
     def on_cerrar(self, event):
@@ -152,17 +161,29 @@ class VentaFrame(wx.Frame):
             wx.MessageBox("La cantidad debe ser un número válido.", "Error", wx.OK | wx.ICON_ERROR)
             return
 
-        sql = "SELECT nombre, precio FROM articulos WHERE codigo_barras = %s"
+        # Consultar información del artículo y su inventario
+        sql = """
+        SELECT a.nombre, a.precio, i.cantidad AS cantidad_inventario 
+        FROM articulos a
+        JOIN inventario i ON a.codigo_barras = i.codigo_barras
+        WHERE a.codigo_barras = %s
+        """
         cursor.execute(sql, (codigo,))
         resultado = cursor.fetchone()
 
         if not resultado:
-            wx.MessageBox("Artículo no encontrado.", "Error", wx.OK | wx.ICON_ERROR)
+            wx.MessageBox("Artículo no encontrado o sin inventario.", "Error", wx.OK | wx.ICON_ERROR)
             return
 
-        nombre, precio = resultado
-        subtotal = precio * cantidad
+        nombre, precio, cantidad_inventario = resultado
 
+        # Verificar si hay suficiente inventario
+        if cantidad > cantidad_inventario:
+            wx.MessageBox(f"No hay suficiente inventario. Solo hay {cantidad_inventario} unidades disponibles.",
+                        "Inventario Insuficiente", wx.OK | wx.ICON_WARNING)
+            return
+
+        subtotal = precio * cantidad
         self.temp_venta.append({
             "codigo": codigo,
             "nombre": nombre,
@@ -170,7 +191,6 @@ class VentaFrame(wx.Frame):
             "cantidad": cantidad,
             "subtotal": subtotal
         })
-
         self.actualizar_lista_articulos()
         self.codigo_barras_entry.SetValue("")
         self.cantidad_entry.SetValue("")
@@ -203,17 +223,14 @@ class VentaFrame(wx.Frame):
     def finalizar_venta(self, event):
         telefono = self.telefono_cliente.GetValue().strip()
         id_empleado = self.id_empleado.GetValue().strip()
-
         if not telefono or not id_empleado:
             wx.MessageBox("Debe ingresar teléfono y ID de empleado.", "Faltan Datos", wx.OK | wx.ICON_WARNING)
             return
-
         try:
             id_empleado = int(id_empleado)
         except ValueError:
             wx.MessageBox("El ID del empleado debe ser un número.", "Error", wx.OK | wx.ICON_ERROR)
             return
-
         if not self.temp_venta:
             wx.MessageBox("No hay artículos seleccionados para vender.", "Venta vacía", wx.OK | wx.ICON_WARNING)
             return
@@ -223,16 +240,36 @@ class VentaFrame(wx.Frame):
                             wx.YES_NO | wx.CANCEL | wx.ICON_QUESTION)
         dlg.SetYesNoLabels("Tarjeta", "Efectivo")
         respuesta = dlg.ShowModal()
-
         if respuesta == wx.ID_CANCEL:
             return
-
+        
         forma_pago = "Tarjeta" if respuesta == wx.ID_YES else "Efectivo"
-
+        monto_recibido = None
+        cambio = 0
+        
+        if forma_pago == "Efectivo":
+            while True:
+                dlg_monto = wx.TextEntryDialog(self, "Ingrese el monto con el que paga el cliente:", 
+                                            "Pago en Efectivo", "")
+                if dlg_monto.ShowModal() == wx.ID_OK:
+                    try:
+                        monto_recibido = float(dlg_monto.GetValue())
+                        total_venta = sum(item["subtotal"] for item in self.temp_venta)
+                        if monto_recibido < total_venta:
+                            wx.MessageBox("El monto recibido es menor al total. Por favor, ingrese un monto válido.",
+                                        "Monto Insuficiente", wx.OK | wx.ICON_ERROR)
+                        else:
+                            cambio = monto_recibido - total_venta
+                            break
+                    except ValueError:
+                        wx.MessageBox("Por favor, ingrese un monto válido.", "Error", wx.OK | wx.ICON_ERROR)
+                else:
+                    return  # El usuario canceló el ingreso del monto
+        
         try:
             fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             total_venta = sum(item["subtotal"] for item in self.temp_venta)
-
+            
             # Validar cliente o usar cliente general
             try:
                 sql_cliente = "SELECT nombre FROM clientes WHERE telefono = %s"
@@ -246,7 +283,7 @@ class VentaFrame(wx.Frame):
             except Exception as e:
                 telefono = "0000000000"
                 self.nombre_cliente = "Cliente General"
-
+            
             # Insertar venta
             sql_venta = """
             INSERT INTO ventas (fecha, total, id_empleado, telefono, forma_pago)
@@ -254,7 +291,7 @@ class VentaFrame(wx.Frame):
             """
             cursor.execute(sql_venta, (fecha, total_venta, id_empleado, telefono, forma_pago))
             id_venta = cursor.lastrowid
-
+            
             # Detalles de venta e inventario
             for item in self.temp_venta:
                 sql_detalle = """
@@ -272,41 +309,59 @@ class VentaFrame(wx.Frame):
                 """
                 cursor.execute(sql_inventario, (item["cantidad"], item["codigo"]))
 
+                # Actualizar la existencia en la tabla articulos
+                sql_articulos = """
+                UPDATE articulos SET existencia = existencia - %s WHERE codigo_barras = %s
+                """
+                cursor.execute(sql_articulos, (item["cantidad"], item["codigo"]))
+            
             conexion.commit()
-
+            
             # Generar contenido del ticket
-            contenido_ticket = self.generar_ticket_contenido(total_venta, id_venta, forma_pago)  # Asegúrate de pasar forma_pago
-
+            contenido_ticket = self.generar_ticket_contenido(
+                total_venta, id_venta, forma_pago, monto_recibido, cambio
+            )
+            
             # Mostrar ticket en ventana
             self.mostrar_ticket(contenido_ticket)
-
             wx.MessageBox(f"Venta realizada exitosamente. Cliente: {self.nombre_cliente}", "Éxito", wx.OK | wx.ICON_INFORMATION)
             self.Close()
         except Exception as e:
             conexion.rollback()
             wx.MessageBox(f"Error al realizar la venta:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
 
-    def generar_ticket_contenido(self, total_venta, id_venta, forma_pago):
+    def generar_ticket_contenido(self, total_venta, id_venta, forma_pago, monto_recibido=None, cambio=None):
         contenido = ""
         contenido += "*" * 40 + "\n"
-        contenido += f"{'TIENDA PITICO':^40}\n"
+        contenido += f"{'🛒TIENDA PITICO':^40}\n"
         contenido += "*" * 40 + "\n\n"
 
         contenido += f"Fecha: {datetime.now().strftime('%d/%m/%Y')}\n"
         contenido += f"Hora: {datetime.now().strftime('%H:%M')}\n"
         contenido += f"Cliente: {self.nombre_cliente}\n"
         contenido += f"Número de Venta: {id_venta}\n"
+        contenido += "-" * 40 + "\n\n"  # Línea extra para separación
+
+        # Encabezado de productos con mejor formato
+        contenido += f"{'Cant.':<6}{'Producto':<18}{'Precio':>8}{'Importe':>8}\n"
         contenido += "-" * 40 + "\n"
 
-        contenido += f"{'Cant.':<5} {'Producto':<25} {'Precio':>10} {'Importe':>10}\n"
-        contenido += "-" * 40 + "\n"
-
+        # Productos con mejor espaciado
         for idx, item in enumerate(self.temp_venta, start=1):
-            contenido += f"{item['cantidad']:<5} {item['nombre'][:25]:<25} ${item['precio']:.2f} ${item['subtotal']:.2f}\n"
+            # Truncar nombre del producto si es muy largo
+            nombre_producto = item['nombre'][:16] if len(item['nombre']) > 16 else item['nombre']
+            
+            contenido += f"{item['cantidad']:<6}{nombre_producto:<18}${item['precio']:>6.2f}${item['subtotal']:>7.2f}\n"
+            contenido += "\n"  # Línea vacía entre productos para mejor separación
 
         contenido += "-" * 40 + "\n"
-        contenido += f"{'Total:':<30}${total_venta:.2f}\n"
-        contenido += f"Forma de Pago: {forma_pago}\n"
+        contenido += f"{'TOTAL:':.<25}${total_venta:>10.2f}\n"
+        if forma_pago == "Efectivo" and monto_recibido is not None:
+            contenido += f"Forma de Pago: {forma_pago} ($    {monto_recibido:.2f})\n"
+            if cambio > 0:
+                contenido += f"Cambio: ${cambio:.2f}\n"
+        else:
+            contenido += f"Forma de Pago: {forma_pago}\n"
         contenido += "-" * 40 + "\n"
         contenido += f"{'Gracias por su compra':^40}\n"
         contenido += f"{'Vuelva pronto':^40}\n"
