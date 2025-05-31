@@ -19,6 +19,12 @@ class ProveedorFrame(wx.Frame):
         fuente_titulo = wx.Font(14, wx.DEFAULT, wx.NORMAL, wx.BOLD)
         titulo.SetFont(fuente_titulo)
 
+        # Botón Regresar
+        self.boton_regresar = wx.Button(self.panel, label="Regresar", pos=(20, 20), size=(80, 30))
+        self.boton_regresar.SetBackgroundColour(wx.Colour(178, 34, 34))  # Rojo oscuro
+        self.boton_regresar.SetForegroundColour(wx.WHITE)
+        self.boton_regresar.Bind(wx.EVT_BUTTON, self.volver_menu)
+
         # Campos del formulario
         wx.StaticText(self.panel, label="Id Proveedor:", pos=(50, 100))
         self.id_proveedor_entry = wx.TextCtrl(self.panel, pos=(180, 100), size=(200, -1))
@@ -56,11 +62,17 @@ class ProveedorFrame(wx.Frame):
         self.boton_actualizar = wx.Button(self.panel, label="Actualizar", pos=(inicio_x + 2 * (boton_ancho + espaciado), y_botones), size=(boton_ancho, 30))
         self.boton_eliminar = wx.Button(self.panel, label="Eliminar", pos=(inicio_x + 3 * (boton_ancho + espaciado), y_botones), size=(boton_ancho, 30))
 
-        # Conectar botones con funciones
+        # Asignar eventos
         self.boton_crear.Bind(wx.EVT_BUTTON, self.crear_proveedor)
         self.boton_buscar.Bind(wx.EVT_BUTTON, self.buscar_proveedor)
         self.boton_actualizar.Bind(wx.EVT_BUTTON, self.actualizar_proveedor)
         self.boton_eliminar.Bind(wx.EVT_BUTTON, self.eliminar_proveedor)
+
+    def volver_menu(self, event):
+        from menu import MenuPrincipal
+        frame = MenuPrincipal()
+        frame.Show()
+        self.Close()
 
     def crear_proveedor(self, event):
         id_proveedor = self.id_proveedor_entry.GetValue()

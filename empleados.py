@@ -9,7 +9,6 @@ class EmpleadoFrame(wx.Frame):
     def __init__(self, parent=None):
         super().__init__(parent, title='Empleados', size=(600, 660))
         self.panel = wx.Panel(self)
-
         self.crear_interfaz()
         self.Centre()
 
@@ -18,6 +17,12 @@ class EmpleadoFrame(wx.Frame):
         titulo = wx.StaticText(self.panel, label="Empleados", pos=(180, 30))
         fuente_titulo = wx.Font(14, wx.DEFAULT, wx.NORMAL, wx.BOLD)
         titulo.SetFont(fuente_titulo)
+
+        # Botón Regresar
+        self.boton_regresar = wx.Button(self.panel, label="Regresar", pos=(20, 20), size=(80, 30))
+        self.boton_regresar.SetBackgroundColour(wx.Colour(178, 34, 34))  # Rojo oscuro
+        self.boton_regresar.SetForegroundColour(wx.WHITE)
+        self.boton_regresar.Bind(wx.EVT_BUTTON, self.volver_menu)
 
         # Campos del formulario
         wx.StaticText(self.panel, label="Id Empleado:", pos=(50, 100))
@@ -75,7 +80,6 @@ class EmpleadoFrame(wx.Frame):
         self.boton_buscar = wx.Button(self.panel, label="Buscar", pos=(inicio_x + (boton_ancho + espaciado), y_botones), size=(boton_ancho, 30))
         self.boton_actualizar = wx.Button(self.panel, label="Actualizar", pos=(inicio_x + 2 * (boton_ancho + espaciado), y_botones), size=(boton_ancho, 30))
         self.boton_eliminar = wx.Button(self.panel, label="Eliminar", pos=(inicio_x + 3 * (boton_ancho + espaciado), y_botones), size=(boton_ancho, 30))
-
         self.boton_ver_contrasena = wx.Button(self.panel, label="Ver Contraseña", pos=(390, 500), size=(100, 25))
 
         # Conectar botones con funciones
@@ -85,25 +89,26 @@ class EmpleadoFrame(wx.Frame):
         self.boton_eliminar.Bind(wx.EVT_BUTTON, self.eliminar_empleado)
         self.boton_ver_contrasena.Bind(wx.EVT_BUTTON, self.ver_contrasena)
 
+    def volver_menu(self, event):
+        from menu import MenuPrincipal
+        frame = MenuPrincipal()
+        frame.Show()
+        self.Close()
+
     def pedir_contrasena(self, mensaje="Ingrese su contraseña"):
         """Diálogo para ingresar contraseña"""
         dlg = wx.Dialog(self, title="Autenticación", size=(300, 150))
         sizer = wx.BoxSizer(wx.VERTICAL)
-
         pass_input = wx.TextCtrl(dlg, style=wx.TE_PASSWORD, size=(-1, 30))
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
         okey = wx.Button(dlg, wx.ID_OK, "Okey")
         cancelar = wx.Button(dlg, wx.ID_CANCEL, "Cancelar")
         btn_sizer.Add(okey, 0, wx.ALL, 5)
         btn_sizer.Add(cancelar, 0, wx.ALL, 5)
-
         sizer.Add(wx.StaticText(dlg, label=mensaje), 0, wx.ALL, 5)
         sizer.Add(pass_input, 0, wx.ALL | wx.EXPAND, 5)
         sizer.Add(btn_sizer, 0, wx.ALIGN_CENTER)
-
         dlg.SetSizer(sizer)
-
         if dlg.ShowModal() == wx.ID_OK:
             valor = pass_input.GetValue()
             dlg.Destroy()
@@ -120,7 +125,6 @@ class EmpleadoFrame(wx.Frame):
             if not id_empleado:
                 wx.MessageBox("Por favor ingrese un ID de empleado", "Error", wx.OK | wx.ICON_ERROR)
                 return
-
             try:
                 sql = "SELECT contraseña FROM empleados WHERE id_empleado = %s"
                 cursor.execute(sql, (id_empleado,))
@@ -137,7 +141,6 @@ class EmpleadoFrame(wx.Frame):
 
     def buscar_empleado(self, event):
         id_empleado = self.id_empleados_entry.GetValue()
-
         try:
             sql = """
             SELECT nombre, apellido, telefono, email, direccion, puesto, sueldo, estatus, contraseña 
@@ -145,7 +148,6 @@ class EmpleadoFrame(wx.Frame):
             """
             cursor.execute(sql, (id_empleado,))
             resultado = cursor.fetchone()
-
             if resultado:
                 self.nombre_entry.SetValue(resultado[0])
                 self.apellido_entry.SetValue(resultado[1])
@@ -167,7 +169,6 @@ class EmpleadoFrame(wx.Frame):
         contrasena_actual = self.pedir_contrasena("Ingrese su contraseña actual:")
         if not contrasena_actual:
             return
-
         try:
             sql = "SELECT contraseña FROM empleados WHERE id_empleado = %s"
             cursor.execute(sql, (id_empleado,))
@@ -175,7 +176,6 @@ class EmpleadoFrame(wx.Frame):
             if not resultado or resultado[0] != contrasena_actual:
                 wx.MessageBox("Contraseña actual incorrecta", "Error", wx.OK | wx.ICON_ERROR)
                 return
-
             nombre = self.nombre_entry.GetValue()
             apellido = self.apellido_entry.GetValue()
             telefono = self.telefono_entry.GetValue()
@@ -186,11 +186,9 @@ class EmpleadoFrame(wx.Frame):
             estatus = self.estatus_entry.GetValue()
             nueva_contrasena = self.contrasena_entry.GetValue()
             confirmar = self.confirmar_contrasena_entry.GetValue()
-
             if nueva_contrasena != confirmar:
                 wx.MessageBox("Las contraseñas no coinciden", "Error", wx.OK | wx.ICON_ERROR)
                 return
-
             sql = """
             UPDATE empleados 
             SET nombre = %s, apellido = %s, telefono = %s, email = %s, direccion = %s, 
@@ -210,16 +208,13 @@ class EmpleadoFrame(wx.Frame):
         contrasena = self.pedir_contrasena("Ingrese su contraseña actual:")
         if not contrasena:
             return
-
         try:
             sql = "SELECT contraseña FROM empleados WHERE id_empleado = %s"
             cursor.execute(sql, (id_empleado,))
             resultado = cursor.fetchone()
-
             if not resultado or resultado[0] != contrasena:
                 wx.MessageBox("Contraseña incorrecta", "Error", wx.OK | wx.ICON_ERROR)
                 return
-
             sql = "DELETE FROM empleados WHERE id_empleado = %s"
             cursor.execute(sql, (id_empleado,))
             conexion.commit()
@@ -239,11 +234,9 @@ class EmpleadoFrame(wx.Frame):
         estatus = self.estatus_entry.GetValue()
         contrasena = self.contrasena_entry.GetValue()
         confirmar = self.confirmar_contrasena_entry.GetValue()
-
         if contrasena != confirmar:
             wx.MessageBox("Las contraseñas no coinciden", "Error", wx.OK | wx.ICON_ERROR)
             return
-
         try:
             sql = """
             INSERT INTO empleados (id_empleado, nombre, apellido, telefono, email, direccion, puesto, sueldo, estatus, contraseña)

@@ -1,0 +1,9 @@
+=== TIENDA PITICO ===
+Fecha: 2025-05-30 13:00
+Cliente: Cliente General
+
+Artículos vendidos:
+Ensalada de legumbres Herdez 215 g x 1 = $15.00
+
+Total: $15.00
+Gracias por su compra!

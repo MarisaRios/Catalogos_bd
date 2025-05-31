@@ -48,12 +48,23 @@ class InventarioFrame(wx.Frame):
         self.boton_actualizar = wx.Button(self.panel, label="Actualizar", pos=(inicio_x + 2 * (boton_ancho + espaciado), y_botones), size=(boton_ancho, 30))
         self.boton_eliminar = wx.Button(self.panel, label="Eliminar", pos=(inicio_x + 3 * (boton_ancho + espaciado), y_botones), size=(boton_ancho, 30))
 
+        self.boton_regresar = wx.Button(self.panel, label="Regresar", pos=(20, 20), size=(80, 30))
+        self.boton_regresar.SetBackgroundColour(wx.Colour(178, 34, 34))
+        self.boton_regresar.SetForegroundColour(wx.WHITE)
+        self.boton_regresar.Bind(wx.EVT_BUTTON, self.volver_menu)
+
         # Asignar eventos
         self.boton_crear.Bind(wx.EVT_BUTTON, self.crear_inventario)
         self.boton_buscar.Bind(wx.EVT_BUTTON, self.buscar_inventario)
         self.boton_actualizar.Bind(wx.EVT_BUTTON, self.actualizar_inventario)
         self.boton_eliminar.Bind(wx.EVT_BUTTON, self.eliminar_inventario)
         self.boton_fecha_actual.Bind(wx.EVT_BUTTON, self.insertar_fecha_actual)
+
+    def volver_menu(self, event):
+        from menu import MenuPrincipal
+        frame = MenuPrincipal()
+        frame.Show()
+        self.Close()
 
     def crear_inventario(self, event):
         codigo = self.codigo_barras_entry.GetValue()
