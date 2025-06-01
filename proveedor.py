@@ -7,11 +7,11 @@ from db import conexion, cursor
 
 class ProveedorFrame(wx.Frame):
     def __init__(self, parent=None):
-        super().__init__(parent, title='Proveedor', size=(500, 500))
+        super().__init__(parent, title='Proveedor', size=(1100, 500))
         self.panel = wx.Panel(self)
-
         self.crear_interfaz()
         self.Centre()
+        self.cargar_proveedores()  # Cargar proveedores al iniciar
 
     def crear_interfaz(self):
         # Título
@@ -68,6 +68,49 @@ class ProveedorFrame(wx.Frame):
         self.boton_actualizar.Bind(wx.EVT_BUTTON, self.actualizar_proveedor)
         self.boton_eliminar.Bind(wx.EVT_BUTTON, self.eliminar_proveedor)
 
+        # Lista de proveedores
+        self.lista_proveedores = wx.ListCtrl(self.panel, style=wx.LC_REPORT | wx.SUNKEN_BORDER, pos=(500, 80), size=(570, 380))
+        self.lista_proveedores.InsertColumn(0, 'ID', width=60)
+        self.lista_proveedores.InsertColumn(1, 'Nombre', width=100)
+        self.lista_proveedores.InsertColumn(2, 'Contacto', width=100)
+        self.lista_proveedores.InsertColumn(3, 'Teléfono', width=80)
+        self.lista_proveedores.InsertColumn(4, 'Email', width=100)
+        self.lista_proveedores.InsertColumn(5, 'Dirección', width=100)
+
+        self.lista_proveedores.Bind(wx.EVT_LIST_ITEM_SELECTED, self.seleccionar_proveedor)
+
+    def cargar_proveedores(self):
+        try:
+            sql = "SELECT id_proveedor, nombre, contacto, telefono, email, direccion FROM proveedor"
+            cursor.execute(sql)
+            for row in cursor.fetchall():
+                index = self.lista_proveedores.InsertItem(self.lista_proveedores.GetItemCount(), str(row[0]))
+                for i in range(1, len(row)):
+                    self.lista_proveedores.SetItem(index, i, str(row[i]))
+        except Exception as e:
+            wx.MessageBox(f"Error al cargar proveedores:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
+
+    def seleccionar_proveedor(self, event):
+        idx = event.Index
+        id_proveedor = self.lista_proveedores.GetItemText(idx, 0)
+        try:
+            sql = """
+            SELECT nombre, contacto, telefono, email, direccion 
+            FROM proveedor WHERE id_proveedor = %s
+            """
+            cursor.execute(sql, (id_proveedor,))
+            resultado = cursor.fetchone()
+            if resultado:
+                # Convertir todos los valores a str antes de asignarlos
+                self.id_proveedor_entry.SetValue(id_proveedor)
+                self.nombre_entry.SetValue(str(resultado[0]))
+                self.contacto_entry.SetValue(str(resultado[1]))
+                self.telefono_entry.SetValue(str(resultado[2]))
+                self.email_entry.SetValue(str(resultado[3]))
+                self.direccion_entry.SetValue(str(resultado[4]))
+        except Exception as e:
+            wx.MessageBox(f"Error al seleccionar proveedor:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
+
     def volver_menu(self, event):
         from menu import MenuPrincipal
         frame = MenuPrincipal()
@@ -88,22 +131,62 @@ class ProveedorFrame(wx.Frame):
             cursor.execute(sql, valores)
             conexion.commit()
             wx.MessageBox("Proveedor creado exitosamente", "Éxito", wx.OK | wx.ICON_INFORMATION)
+            self.lista_proveedores.DeleteAllItems()
+            self.cargar_proveedores()
         except Exception as e:
             wx.MessageBox(f"Error al crear proveedor:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
 
     def buscar_proveedor(self, event):
-        id_proveedor = self.id_proveedor_entry.GetValue()
+        # Obtener los valores de los campos de entrada
+        id_proveedor = self.id_proveedor_entry.GetValue().strip()
+        nombre = self.nombre_entry.GetValue().strip()
+        direccion = self.direccion_entry.GetValue().strip()
+        telefono = self.telefono_entry.GetValue().strip()
+        email = self.email_entry.GetValue().strip()
+
+        # Verificar si al menos un campo tiene un valor
+        if not any([id_proveedor, nombre, direccion, telefono, email]):
+            wx.MessageBox("Ingrese un valor para buscar", "Aviso", wx.OK | wx.ICON_WARNING)
+            return
 
         try:
-            sql = "SELECT nombre, contacto, telefono, email, direccion FROM proveedor WHERE id_proveedor = %s"
-            cursor.execute(sql, (id_proveedor,))
+            # Construir la consulta SQL dinámica basada en los campos no vacíos
+            condiciones = []
+            valores = []
+
+            if id_proveedor:
+                condiciones.append("id_proveedor = %s")
+                valores.append(id_proveedor)
+            if nombre:
+                condiciones.append("nombre LIKE %s")
+                valores.append(f"%{nombre}%")  # Búsqueda por coincidencia parcial
+            if direccion:
+                condiciones.append("direccion LIKE %s")
+                valores.append(f"%{direccion}%")
+            if telefono:
+                condiciones.append("telefono = %s")
+                valores.append(telefono)
+            if email:
+                condiciones.append("email = %s")
+                valores.append(email)
+
+            # Montar la consulta SQL final
+            sql = """
+            SELECT id_proveedor, nombre, contacto, telefono, email, direccion 
+            FROM proveedor WHERE {}
+            """.format(" AND ".join(condiciones))
+
+            cursor.execute(sql, tuple(valores))
             resultado = cursor.fetchone()
+
             if resultado:
-                self.nombre_entry.SetValue(resultado[0])
-                self.contacto_entry.SetValue(resultado[1])
-                self.telefono_entry.SetValue(resultado[2])
-                self.email_entry.SetValue(resultado[3])
-                self.direccion_entry.SetValue(resultado[4])
+                # Convertir todos los valores a str antes de asignarlos
+                self.id_proveedor_entry.SetValue(str(resultado[0]))
+                self.nombre_entry.SetValue(str(resultado[1]))
+                self.contacto_entry.SetValue(str(resultado[2]))
+                self.telefono_entry.SetValue(str(resultado[3]))
+                self.email_entry.SetValue(str(resultado[4]))
+                self.direccion_entry.SetValue(str(resultado[5]))
             else:
                 wx.MessageBox("Proveedor no encontrado", "Aviso", wx.OK | wx.ICON_WARNING)
         except Exception as e:
@@ -123,6 +206,8 @@ class ProveedorFrame(wx.Frame):
             cursor.execute(sql, valores)
             conexion.commit()
             wx.MessageBox("Proveedor actualizado correctamente", "Éxito", wx.OK | wx.ICON_INFORMATION)
+            self.lista_proveedores.DeleteAllItems()
+            self.cargar_proveedores()
         except Exception as e:
             wx.MessageBox(f"Error al actualizar proveedor:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
 
@@ -134,5 +219,7 @@ class ProveedorFrame(wx.Frame):
             cursor.execute(sql, (id_proveedor,))
             conexion.commit()
             wx.MessageBox("Proveedor eliminado", "Éxito", wx.OK | wx.ICON_INFORMATION)
+            self.lista_proveedores.DeleteAllItems()
+            self.cargar_proveedores()
         except Exception as e:
             wx.MessageBox(f"Error al eliminar proveedor:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)

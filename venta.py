@@ -308,12 +308,6 @@ class VentaFrame(wx.Frame):
                 UPDATE inventario SET cantidad = cantidad - %s WHERE codigo_barras = %s
                 """
                 cursor.execute(sql_inventario, (item["cantidad"], item["codigo"]))
-
-                # Actualizar la existencia en la tabla articulos
-                sql_articulos = """
-                UPDATE articulos SET existencia = existencia - %s WHERE codigo_barras = %s
-                """
-                cursor.execute(sql_articulos, (item["cantidad"], item["codigo"]))
             
             conexion.commit()
             

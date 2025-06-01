@@ -1,20 +1,19 @@
 # Tienda Pitico - Empleados
 # MARISA RIOS DE PAZ S4A
-
 import wx
 from db import conexion, cursor
 
-
 class EmpleadoFrame(wx.Frame):
     def __init__(self, parent=None):
-        super().__init__(parent, title='Empleados', size=(600, 660))
+        super().__init__(parent, title='Empleados', size=(1200, 660))
         self.panel = wx.Panel(self)
         self.crear_interfaz()
         self.Centre()
+        self.cargar_empleados()  # Cargar empleados al iniciar
 
     def crear_interfaz(self):
         # Título
-        titulo = wx.StaticText(self.panel, label="Empleados", pos=(180, 30))
+        titulo = wx.StaticText(self.panel, label="Gestión de Empleados", pos=(180, 30))
         fuente_titulo = wx.Font(14, wx.DEFAULT, wx.NORMAL, wx.BOLD)
         titulo.SetFont(fuente_titulo)
 
@@ -73,7 +72,7 @@ class EmpleadoFrame(wx.Frame):
         boton_ancho = 100
         espaciado = 10
         total_botones = 4 * boton_ancho + 3 * espaciado
-        inicio_x = (500 - total_botones) // 2
+        inicio_x = 20
         y_botones = 540
 
         self.boton_crear = wx.Button(self.panel, label="Crear", pos=(inicio_x, y_botones), size=(boton_ancho, 30))
@@ -88,6 +87,56 @@ class EmpleadoFrame(wx.Frame):
         self.boton_actualizar.Bind(wx.EVT_BUTTON, self.actualizar_empleado)
         self.boton_eliminar.Bind(wx.EVT_BUTTON, self.eliminar_empleado)
         self.boton_ver_contrasena.Bind(wx.EVT_BUTTON, self.ver_contrasena)
+
+        # Lista de empleados
+        self.lista_empleados = wx.ListCtrl(self.panel, style=wx.LC_REPORT | wx.SUNKEN_BORDER, pos=(500, 80), size=(640, 480))
+        self.lista_empleados.InsertColumn(0, 'ID', width=60)
+        self.lista_empleados.InsertColumn(1, 'Nombre', width=100)
+        self.lista_empleados.InsertColumn(2, 'Apellido', width=100)
+        self.lista_empleados.InsertColumn(3, 'Teléfono', width=80)
+        self.lista_empleados.InsertColumn(4, 'Email', width=100)
+        self.lista_empleados.InsertColumn(5, 'Dirección', width=100)
+        self.lista_empleados.InsertColumn(6, 'Puesto', width=80)
+        self.lista_empleados.InsertColumn(7, 'Sueldo', width=70)
+        self.lista_empleados.InsertColumn(8, 'Estatus', width=70)
+
+        self.lista_empleados.Bind(wx.EVT_LIST_ITEM_SELECTED, self.seleccionar_empleado)
+
+    def cargar_empleados(self):
+        try:
+            sql = "SELECT id_empleado, nombre, apellido, telefono, email, direccion, puesto, sueldo, estatus FROM empleados"
+            cursor.execute(sql)
+            for row in cursor.fetchall():
+                index = self.lista_empleados.InsertItem(self.lista_empleados.GetItemCount(), str(row[0]))
+                for i in range(1, len(row)):
+                    self.lista_empleados.SetItem(index, i, str(row[i]))
+        except Exception as e:
+            wx.MessageBox(f"Error al cargar empleados:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
+
+    def seleccionar_empleado(self, event):
+        idx = event.Index
+        id_empleado = self.lista_empleados.GetItemText(idx, 0)
+        try:
+            sql = """
+            SELECT nombre, apellido, telefono, email, direccion, puesto, sueldo, estatus, contraseña 
+            FROM empleados WHERE id_empleado = %s
+            """
+            cursor.execute(sql, (id_empleado,))
+            resultado = cursor.fetchone()
+            if resultado:
+                self.id_empleados_entry.SetValue(id_empleado)
+                self.nombre_entry.SetValue(resultado[0])
+                self.apellido_entry.SetValue(resultado[1])
+                self.telefono_entry.SetValue(resultado[2])
+                self.email_entry.SetValue(resultado[3])
+                self.direccion_entry.SetValue(resultado[4])
+                self.puesto_entry.SetValue(resultado[5])
+                self.sueldo_entry.SetValue(str(resultado[6]))
+                self.estatus_entry.SetValue(resultado[7])
+                self.contrasena_entry.SetValue(resultado[8])  # Mostrar contraseña sin modificarla
+                self.confirmar_contrasena_entry.SetValue(resultado[8])
+        except Exception as e:
+            wx.MessageBox(f"Error al seleccionar empleado:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
 
     def volver_menu(self, event):
         from menu import MenuPrincipal
@@ -118,7 +167,6 @@ class EmpleadoFrame(wx.Frame):
             return None
 
     def ver_contrasena(self, event):
-        """Muestra la contraseña si la clave general es correcta"""
         clave_ingresada = self.pedir_contrasena("Clave General:")
         if clave_ingresada == "pitico":
             id_empleado = self.id_empleados_entry.GetValue().strip()
@@ -140,25 +188,29 @@ class EmpleadoFrame(wx.Frame):
             wx.MessageBox("Clave incorrecta", "Acceso denegado", wx.OK | wx.ICON_ERROR)
 
     def buscar_empleado(self, event):
-        id_empleado = self.id_empleados_entry.GetValue()
+        campo = self.id_empleados_entry.GetValue().strip()
+        if not campo:
+            wx.MessageBox("Ingrese un valor para buscar", "Aviso", wx.OK | wx.ICON_WARNING)
+            return
         try:
             sql = """
-            SELECT nombre, apellido, telefono, email, direccion, puesto, sueldo, estatus, contraseña 
-            FROM empleados WHERE id_empleado = %s
+            SELECT id_empleado, nombre, apellido, telefono, email, direccion, puesto, sueldo, estatus, contraseña 
+            FROM empleados WHERE id_empleado = %s OR telefono = %s OR email = %s OR contraseña = %s
             """
-            cursor.execute(sql, (id_empleado,))
+            cursor.execute(sql, (campo, campo, campo, campo))
             resultado = cursor.fetchone()
             if resultado:
-                self.nombre_entry.SetValue(resultado[0])
-                self.apellido_entry.SetValue(resultado[1])
-                self.telefono_entry.SetValue(resultado[2])
-                self.email_entry.SetValue(resultado[3])
-                self.direccion_entry.SetValue(resultado[4])
-                self.puesto_entry.SetValue(resultado[5])
-                self.sueldo_entry.SetValue(str(resultado[6]))
-                self.estatus_entry.SetValue(resultado[7])
-                self.contrasena_entry.SetValue(resultado[8])
-                self.confirmar_contrasena_entry.SetValue(resultado[8])
+                self.id_empleados_entry.SetValue(resultado[0])
+                self.nombre_entry.SetValue(resultado[1])
+                self.apellido_entry.SetValue(resultado[2])
+                self.telefono_entry.SetValue(resultado[3])
+                self.email_entry.SetValue(resultado[4])
+                self.direccion_entry.SetValue(resultado[5])
+                self.puesto_entry.SetValue(resultado[6])
+                self.sueldo_entry.SetValue(str(resultado[7]))
+                self.estatus_entry.SetValue(resultado[8])
+                self.contrasena_entry.SetValue(resultado[9])  # Mostrar contraseña
+                self.confirmar_contrasena_entry.SetValue(resultado[9])
             else:
                 wx.MessageBox("Empleado no encontrado", "Aviso", wx.OK | wx.ICON_WARNING)
         except Exception as e:
@@ -200,6 +252,8 @@ class EmpleadoFrame(wx.Frame):
             cursor.execute(sql, valores)
             conexion.commit()
             wx.MessageBox("Empleado actualizado correctamente", "Éxito", wx.OK | wx.ICON_INFORMATION)
+            self.lista_empleados.DeleteAllItems()
+            self.cargar_empleados()
         except Exception as e:
             wx.MessageBox(f"Error al actualizar empleado:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
 
@@ -219,6 +273,8 @@ class EmpleadoFrame(wx.Frame):
             cursor.execute(sql, (id_empleado,))
             conexion.commit()
             wx.MessageBox("Empleado eliminado", "Éxito", wx.OK | wx.ICON_INFORMATION)
+            self.lista_empleados.DeleteAllItems()
+            self.cargar_empleados()
         except Exception as e:
             wx.MessageBox(f"Error al eliminar empleado:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
 
@@ -247,5 +303,7 @@ class EmpleadoFrame(wx.Frame):
             cursor.execute(sql, valores)
             conexion.commit()
             wx.MessageBox("Empleado creado exitosamente", "Éxito", wx.OK | wx.ICON_INFORMATION)
+            self.lista_empleados.DeleteAllItems()
+            self.cargar_empleados()
         except Exception as e:
             wx.MessageBox(f"Error al crear empleado:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)

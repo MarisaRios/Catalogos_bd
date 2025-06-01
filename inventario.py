@@ -8,11 +8,12 @@ from db import conexion, cursor
 
 class InventarioFrame(wx.Frame):
     def __init__(self, parent=None):
-        super().__init__(parent, title='Inventario', size=(600, 400))
+        super().__init__(parent, title='Inventario', size=(900, 650))
         self.panel = wx.Panel(self)
 
         self.crear_interfaz()
         self.Centre()
+        self.cargar_inventario()  # Cargar inventario al iniciar
 
     def crear_interfaz(self):
         # Título
@@ -60,6 +61,44 @@ class InventarioFrame(wx.Frame):
         self.boton_eliminar.Bind(wx.EVT_BUTTON, self.eliminar_inventario)
         self.boton_fecha_actual.Bind(wx.EVT_BUTTON, self.insertar_fecha_actual)
 
+        # Lista de inventario
+        self.lista_inventario = wx.ListCtrl(self.panel, style=wx.LC_REPORT | wx.SUNKEN_BORDER, pos=(50, 300), size=(800, 280))
+        self.lista_inventario.InsertColumn(0, 'Codigo de Barras', width=150)
+        self.lista_inventario.InsertColumn(1, 'Cantidad', width=100)
+        self.lista_inventario.InsertColumn(2, 'Fecha de Actualización', width=150)
+
+        self.lista_inventario.Bind(wx.EVT_LIST_ITEM_SELECTED, self.seleccionar_registro)
+
+    def cargar_inventario(self, filtro_fecha=None):
+        try:
+            self.lista_inventario.DeleteAllItems()
+            if filtro_fecha:
+                sql = "SELECT codigo_barras, cantidad, fecha_actualizacion FROM inventario WHERE DATE(fecha_actualizacion) = %s"
+                cursor.execute(sql, (filtro_fecha,))
+            else:
+                sql = "SELECT codigo_barras, cantidad, fecha_actualizacion FROM inventario"
+                cursor.execute(sql)
+            for row in cursor.fetchall():
+                index = self.lista_inventario.InsertItem(self.lista_inventario.GetItemCount(), str(row[0]))
+                self.lista_inventario.SetItem(index, 1, str(row[1]))
+                self.lista_inventario.SetItem(index, 2, str(row[2]))
+        except Exception as e:
+            wx.MessageBox(f"Error al cargar inventario:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
+
+    def seleccionar_registro(self, event):
+        idx = event.Index
+        codigo = self.lista_inventario.GetItemText(idx, 0)
+        try:
+            sql = "SELECT cantidad, fecha_actualizacion FROM inventario WHERE codigo_barras = %s"
+            cursor.execute(sql, (codigo,))
+            resultado = cursor.fetchone()
+            if resultado:
+                self.codigo_barras_entry.SetValue(codigo)
+                self.cantidad_entry.SetValue(str(resultado[0]))
+                self.fecha_actualizacion_entry.SetValue(str(resultado[1]))
+        except Exception as e:
+            wx.MessageBox(f"Error al seleccionar registro:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
+
     def volver_menu(self, event):
         from menu import MenuPrincipal
         frame = MenuPrincipal()
@@ -80,21 +119,31 @@ class InventarioFrame(wx.Frame):
             cursor.execute(sql, valores)
             conexion.commit()
             wx.MessageBox("Inventario creado exitosamente", "Éxito", wx.OK | wx.ICON_INFORMATION)
+            self.cargar_inventario()
         except Exception as e:
             wx.MessageBox(f"Error al crear inventario:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
 
     def buscar_inventario(self, event):
-        codigo = self.codigo_barras_entry.GetValue()
+        campo = self.codigo_barras_entry.GetValue().strip()
+        fecha = self.fecha_actualizacion_entry.GetValue().strip()
+
+        if not campo and not fecha:
+            wx.MessageBox("Ingrese un código o una fecha para buscar", "Aviso", wx.OK | wx.ICON_WARNING)
+            return
 
         try:
-            sql = "SELECT cantidad, fecha_actualizacion FROM inventario WHERE codigo_barras = %s"
-            cursor.execute(sql, (codigo,))
-            resultado = cursor.fetchone()
-            if resultado:
-                self.cantidad_entry.SetValue(str(resultado[0]))
-                self.fecha_actualizacion_entry.SetValue(str(resultado[1]))
-            else:
-                wx.MessageBox("Inventario no encontrado", "Aviso", wx.OK | wx.ICON_WARNING)
+            if campo:
+                sql = "SELECT cantidad, fecha_actualizacion FROM inventario WHERE codigo_barras = %s"
+                cursor.execute(sql, (campo,))
+                resultado = cursor.fetchone()
+                if resultado:
+                    self.cantidad_entry.SetValue(str(resultado[0]))
+                    self.fecha_actualizacion_entry.SetValue(str(resultado[1]))
+                    self.cargar_inventario()
+                else:
+                    wx.MessageBox("Inventario no encontrado", "Aviso", wx.OK | wx.ICON_WARNING)
+            elif fecha:
+                self.cargar_inventario(filtro_fecha=fecha)
         except Exception as e:
             wx.MessageBox(f"Error al buscar inventario:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
 
@@ -112,6 +161,7 @@ class InventarioFrame(wx.Frame):
             cursor.execute(sql, valores)
             conexion.commit()
             wx.MessageBox("Inventario actualizado", "Éxito", wx.OK | wx.ICON_INFORMATION)
+            self.cargar_inventario()
         except Exception as e:
             wx.MessageBox(f"Error al actualizar inventario:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
 
@@ -123,6 +173,10 @@ class InventarioFrame(wx.Frame):
             cursor.execute(sql, (codigo,))
             conexion.commit()
             wx.MessageBox("Inventario eliminado", "Éxito", wx.OK | wx.ICON_INFORMATION)
+            self.codigo_barras_entry.SetValue("")
+            self.cantidad_entry.SetValue("")
+            self.fecha_actualizacion_entry.SetValue("")
+            self.cargar_inventario()
         except Exception as e:
             wx.MessageBox(f"Error al eliminar inventario:\n{str(e)}", "Error", wx.OK | wx.ICON_ERROR)
 
